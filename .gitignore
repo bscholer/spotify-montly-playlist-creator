@@ -3,3 +3,6 @@ __pycache__
 data/
 .cache
 .idea/
+.env
+Session.vim
+.undodir

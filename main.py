@@ -1,3 +1,4 @@
+import os
 import datetime
 import random
 import re
@@ -5,6 +6,9 @@ import re
 import pandas as pd
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # https://englishstudyhere.com/grammar/adjectives/150-most-common-adjectives/
 word_list = ['macabre', 'unequaled', 'brawny', 'wicked', 'obscene', 'stupendous', 'spiteful', 'quarrelsome', 'naive',
@@ -126,9 +130,9 @@ scope = "user-library-read,playlist-modify-public,playlist-modify-private,playli
 
 # birdy_uri = 'spotify:artist:2WX2uTcsvV5OnS0inACecP'
 try:
-    spotify = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope, cache_path='/data/token.txt'))
+    spotify = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope, cache_path=r'/data/token.txt', client_id=os.getenv('SPOTIFY_CLIENT_ID'), client_secret=os.getenv('SPOTIFY_CLIENT_SECRET'), redirect_uri=os.getenv('SPOTIFY_REDIRECT_URI')))
 except:
-    spotify = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope, cache_path='data/token.txt'))
+    spotify = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope, cache_path=r'data/token.txt', client_id=os.getenv('SPOTIFY_CLIENT_ID'), client_secret=os.getenv('SPOTIFY_CLIENT_SECRET'), redirect_uri=os.getenv('SPOTIFY_REDIRECT_URI')))
 
 
 def get_all_saved_tracks():
