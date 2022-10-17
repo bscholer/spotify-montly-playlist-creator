@@ -128,11 +128,15 @@ word_list = [word.lower() for word in word_list]
 REQUEST_SIZE = 50
 scope = "user-library-read,playlist-modify-public,playlist-modify-private,playlist-read-private,playlist-read-collaborative"
 
-# birdy_uri = 'spotify:artist:2WX2uTcsvV5OnS0inACecP'
 try:
+    print("Authenticating...")
     spotify = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope, cache_path=r'/data/token.txt', client_id=os.getenv('SPOTIFY_CLIENT_ID'), client_secret=os.getenv('SPOTIFY_CLIENT_SECRET'), redirect_uri=os.getenv('SPOTIFY_REDIRECT_URI')))
+    print("Authenticated!")
 except:
     spotify = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope, cache_path=r'data/token.txt', client_id=os.getenv('SPOTIFY_CLIENT_ID'), client_secret=os.getenv('SPOTIFY_CLIENT_SECRET'), redirect_uri=os.getenv('SPOTIFY_REDIRECT_URI')))
+    print("Authenticated!")
+
+user_id = spotify.current_user()['id']
 
 
 def get_all_saved_tracks():
@@ -168,6 +172,7 @@ def get_playlist_tracks(playlist_id):
     return tracks
 
 
+print('Getting all saved tracks...')
 playlists = get_all_playlists()
 # remove duplicate fun words from the word list
 for playlist in playlists:
@@ -220,7 +225,7 @@ def get_playlist_id(year_month=''):
             return playlist['id']
 
     name = make_creative_name(month, year_month)
-    playlist = spotify.user_playlist_create(user='bobby2552', name=name, public=True, collaborative=False,
+    playlist = spotify.user_playlist_create(user=user_id, name=name, public=True, collaborative=False,
                                             description=description)
     print(f'Created playlist {name}')
     return playlist['id']
@@ -229,21 +234,43 @@ def get_playlist_id(year_month=''):
     #     return [playlist['id'] for playlist in playlists if playlist['description'] == description][0]
 
 
+def backup_discover_weekly():
+    print()
+    discover_weekly_playlist_id = [playlist['id'] for playlist in playlists if playlist['name'] == 'Discover Weekly']
+    if len(discover_weekly_playlist_id):
+        discover_weekly_playlist_id = discover_weekly_playlist_id[0]
+        # break if today isn't friday
+        today = pd.Timestamp.today()
+        if today.dayofweek != 4:
+            print('Today is not Friday')
+            return
+
+        # get the date of the past monday
+        monday = today - pd.Timedelta(days=today.dayofweek)
+        name = f'Discover Weekly {str(monday)[:10]}'
+        description = '🤖 generated backup playlist for Discover Weekly'
+        weekly_playlist = len([playlist['id'] for playlist in playlists if playlist['name'] == name])
+        if weekly_playlist:
+            print('Found existing Discover Weekly playlist')
+            return
+
+        playlist = spotify.user_playlist_create(user=user_id, name=name, public=False, collaborative=False,
+                                                description=description)
+        # get the tracks from the Discover weekly playlist
+        tracks = get_playlist_tracks(discover_weekly_playlist_id)
+        track_ids = [track['track']['id'] for track in tracks]
+        spotify.playlist_add_items(playlist_id=playlist['id'], items=track_ids)
+        print(name)
+
 def main():
+    print("Logged in as " + spotify.me()['display_name'])
     # delete_playlists()
     # playlists = get_all_playlists()
     # playlist_names = [playlist['name'] for playlist in playlists]
     # playlist_descriptions = [playlist['description'] for playlist in playlists]
     # return
 
-    discover_weekly_playlist_id = [playlist['id'] for playlist in playlists if playlist['name'] == 'Discover Weekly'][0]
-    if discover_weekly_playlist_id:
-        # add songs from discover weekly to the monthly playlist
-        print('Discover Weekly exists')
-        # get the date of the past monday
-        today = pd.Timestamp.today()
-        monday = today - pd.Timedelta(days=today.dayofweek)
-        name = str(monday)[:10]
+    backup_discover_weekly()
 
     # return
 
@@ -254,7 +281,7 @@ def main():
     total_added = 0
     for name, group in df_grouped:
         group_len = group.shape[0]
-        if group_len > 5:
+        if group_len > 1:
             # make a new playlist if one with name doesn't exist
             playlist_id = get_playlist_id(year_month=name)
 
