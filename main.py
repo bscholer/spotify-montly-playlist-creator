@@ -251,7 +251,7 @@ def backup_discover_weekly():
         description = '🤖 generated backup playlist for Discover Weekly'
         weekly_playlist = len([playlist['id'] for playlist in playlists if playlist['name'] == name])
         if weekly_playlist:
-            print('Found existing Discover Weekly playlist')
+            print('Found existing Discover Weekly backup playlist')
             return
 
         playlist = spotify.user_playlist_create(user=user_id, name=name, public=False, collaborative=False,
@@ -262,6 +262,37 @@ def backup_discover_weekly():
         spotify.playlist_add_items(playlist_id=playlist['id'], items=track_ids)
         print(name)
 
+
+def backup_release_radar():
+    print()
+    release_radar_playlist_id = [playlist['id'] for playlist in playlists if playlist['name'] == 'Release Radar']
+    if len(release_radar_playlist_id):
+        release_radar_playlist_id = release_radar_playlist_id[0]
+        # break if today isn't monday
+        today = pd.Timestamp.today()
+        if today.dayofweek != 0:
+            print('Today is not Monday')
+            return
+
+        # get the date of the past monday
+        # even though it refreshes on Friday, I think it's best to keep consistent with Discover Weekly backup dates
+        monday = today - pd.Timedelta(days=today.dayofweek)
+        name = f'Release Radar {str(monday)[:10]}'
+        description = '🤖 generated backup playlist for Release Radar'
+        weekly_playlist = len([playlist['id'] for playlist in playlists if playlist['name'] == name])
+        if weekly_playlist:
+            print('Found existing Release Radar backup playlist')
+            return
+
+        playlist = spotify.user_playlist_create(user=user_id, name=name, public=False, collaborative=False,
+                                                description=description)
+        # get the tracks from the Release Radar playlist
+        tracks = get_playlist_tracks(release_radar_playlist_id)
+        track_ids = [track['track']['id'] for track in tracks]
+        spotify.playlist_add_items(playlist_id=playlist['id'], items=track_ids)
+        print(name)
+
+
 def main():
     print("Logged in as " + spotify.me()['display_name'])
     # delete_playlists()
@@ -271,6 +302,7 @@ def main():
     # return
 
     backup_discover_weekly()
+    backup_release_radar()
 
     # return
 
