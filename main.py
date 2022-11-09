@@ -247,7 +247,7 @@ def backup_discover_weekly():
 
         # get the date of the past monday
         monday = today - pd.Timedelta(days=today.dayofweek)
-        name = f'Discover Weekly {str(monday)[:10]}'
+        name = f'DW {str(monday)[:10]}'
         description = '🤖 generated backup playlist for Discover Weekly'
         weekly_playlist = len([playlist['id'] for playlist in playlists if playlist['name'] == name])
         if weekly_playlist:
@@ -277,7 +277,7 @@ def backup_release_radar():
         # get the date of the past monday
         # even though it refreshes on Friday, I think it's best to keep consistent with Discover Weekly backup dates
         monday = today - pd.Timedelta(days=today.dayofweek)
-        name = f'Release Radar {str(monday)[:10]}'
+        name = f'RR {str(monday)[:10]}'
         description = '🤖 generated backup playlist for Release Radar'
         weekly_playlist = len([playlist['id'] for playlist in playlists if playlist['name'] == name])
         if weekly_playlist:
