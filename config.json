@@ -1,0 +1,55 @@
+{
+  "period_playlist": [
+    {
+      "period": "daily/weekly/monthly/yearly",
+      "enabled": true,
+      "only_process_current_period": true,
+      "playlist_name": "{now>YY} (alliteration of {now>MMMM}) {now>MMMM}",
+      "playlist_description": "🤖 generated {alliteration_key} playlist for {date_key}",
+      "date_key": "📆{now>YYYY-MM}",
+      "alliteration_key": "✨(alliteration)",
+      "public": true,
+      "collaborative": false,
+      "minimum_tracks": 2,
+      "alliteration_word_list": ["long", "list", "of", "words"]
+    }
+  ],
+  "backups": [
+    {
+      "enabled": true,
+      "original_id": "37i9dQZEVXcWVJnLWOFwRa",
+      "original_name": "Discover Weekly",
+      "backup_name": "DW {last monday>YYYY-MM-DD}",
+      "backup_description": "🤖 generated backup playlist for Discover Weekly {date_key}",
+      "date_key": "🔎{last monday>YYYY-MM-DD}",
+      "backup_public": false,
+      "backup_collaborative": false,
+      "use_cover_art_from_original": false,
+      "cron_statement": "0 0 * * WED"
+    },
+    {
+      "enabled": true,
+      "original_id": "37i9dQZEVXbjBAFx5fGiux",
+      "original_name": "Release Radar",
+      "backup_name": "RR {last monday>YYYY-MM-DD}",
+      "backup_description": "🤖 generated backup playlist for Release Radar {date_key}",
+      "date_key": "🆕{last monday>YYYY-MM-DD}",
+      "backup_public": false,
+      "backup_collaborative": false,
+      "use_cover_art_from_original": true,
+      "cron_statement": "0 0 * * WED"
+    },
+    {
+      "enabled": true,
+      "original_id": "37i9dQZF1E37Uewu0tLIfY",
+      "original_name": "Daily Mix 5",
+      "backup_name": "DM5 {today>YYYY-MM-DD}",
+      "backup_description": "🤖 generated backup playlist for Daily Mix 5 {date_key}",
+      "date_key": "5️⃣{today>YYYY-MM-DD}",
+      "backup_public": false,
+      "backup_collaborative": false,
+      "use_cover_art_from_original": true,
+      "cron_statement": "0 0 * * *"
+    }
+  ]
+}
