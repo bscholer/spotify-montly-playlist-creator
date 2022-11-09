@@ -1,12 +1,14 @@
-import os
+import base64
 import datetime
+import os
 import random
 import re
 
 import pandas as pd
+import requests
 import spotipy
-from spotipy.oauth2 import SpotifyOAuth
 from dotenv import load_dotenv
+from spotipy.oauth2 import SpotifyOAuth
 
 load_dotenv()
 
@@ -126,32 +128,45 @@ word_list = ['macabre', 'unequaled', 'brawny', 'wicked', 'obscene', 'stupendous'
 word_list = [word.lower() for word in word_list]
 
 REQUEST_SIZE = 50
-scope = "user-library-read,playlist-modify-public,playlist-modify-private,playlist-read-private,playlist-read-collaborative"
+ONLY_PROCESS_CURRENT_MONTH = True
+scope = "user-library-read,playlist-modify-public,playlist-modify-private,playlist-read-private,playlist-read-collaborative,ugc-image-upload"
 
 try:
-    print("Authenticating...")
-    spotify = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope, cache_path=r'/data/token.txt', client_id=os.getenv('SPOTIFY_CLIENT_ID'), client_secret=os.getenv('SPOTIFY_CLIENT_SECRET'), redirect_uri=os.getenv('SPOTIFY_REDIRECT_URI')))
-    print("Authenticated!")
+    spotify = spotipy.Spotify(
+        auth_manager=SpotifyOAuth(scope=scope, cache_path=r'/data/token.txt', client_id=os.getenv('SPOTIFY_CLIENT_ID'),
+                                  client_secret=os.getenv('SPOTIFY_CLIENT_SECRET'),
+                                  redirect_uri=os.getenv('SPOTIFY_REDIRECT_URI')))
 except:
-    spotify = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope, cache_path=r'data/token.txt', client_id=os.getenv('SPOTIFY_CLIENT_ID'), client_secret=os.getenv('SPOTIFY_CLIENT_SECRET'), redirect_uri=os.getenv('SPOTIFY_REDIRECT_URI')))
-    print("Authenticated!")
+    spotify = spotipy.Spotify(
+        auth_manager=SpotifyOAuth(scope=scope, cache_path=r'data/token.txt', client_id=os.getenv('SPOTIFY_CLIENT_ID'),
+                                  client_secret=os.getenv('SPOTIFY_CLIENT_SECRET'),
+                                  redirect_uri=os.getenv('SPOTIFY_REDIRECT_URI')))
 
 user_id = spotify.current_user()['id']
+print("Logged in as " + spotify.me()['display_name'])
 
 
-def get_all_saved_tracks():
+def get_saved_tracks(full_query=False):
+    print('Getting {} saved tracks'.format('all' if full_query else 'first {} tracks'.format(REQUEST_SIZE)))
     results = spotify.current_user_saved_tracks(limit=REQUEST_SIZE)
     tracks = results['items']
-    while results['next']:
-        results = spotify.next(results)
-        tracks.extend(results['items'])
+    if full_query:
+        while results['next']:
+            results = spotify.next(results)
+            tracks.extend(results['items'])
 
     df = pd.DataFrame(tracks)
     # group df by added_at by month
     df['added_at'] = pd.to_datetime(df['added_at'])
+    df['added_at'] = df['added_at'].apply(lambda x: x.replace(tzinfo=None))
     df['year_month'] = df['added_at'].dt.to_period('M')
     df['year_month'] = df['year_month'].astype(str)
+    print(df)
     return df
+
+
+def get_as_base64(url):
+    return base64.b64encode(requests.get(url).content)
 
 
 def get_all_playlists():
@@ -172,7 +187,6 @@ def get_playlist_tracks(playlist_id):
     return tracks
 
 
-print('Getting all saved tracks...')
 playlists = get_all_playlists()
 # remove duplicate fun words from the word list
 for playlist in playlists:
@@ -207,14 +221,14 @@ def make_creative_name(month, year):
     filtered_word_list = [word for word in word_list if word[0] == month.lower()[0]]
     # print(f"Filtered word list: {filtered_word_list}")
     random_word = random.choice(filtered_word_list)
-    # remove the word from the list so it can't be used again
+    # remove the word from the list, so it can't be used again
     word_list.remove(random_word)
     return f'{year[2:4]} {random_word.capitalize()} {month}'
     # return f'{word} {month}'
 
 
 # Gets the ID of an existing playlist based on name, or creates a new playlist if it doesn't exist
-def get_playlist_id(year_month=''):
+def get_playlist_id_by_key(year_month=''):
     month = datetime.datetime.strptime(year_month, '%Y-%m').strftime('%B')
     description = make_description(year_month)
     description_key = get_description_key(year_month)
@@ -234,80 +248,71 @@ def get_playlist_id(year_month=''):
     #     return [playlist['id'] for playlist in playlists if playlist['description'] == description][0]
 
 
-def backup_discover_weekly():
-    print()
-    discover_weekly_playlist_id = [playlist['id'] for playlist in playlists if playlist['name'] == 'Discover Weekly']
-    if len(discover_weekly_playlist_id):
-        discover_weekly_playlist_id = discover_weekly_playlist_id[0]
-        # break if today isn't friday
-        today = pd.Timestamp.today()
-        if today.dayofweek != 4:
-            print('Today is not Friday')
-            return
+# days of week: 0 = Monday, 6 = Sunday
+# backup_playlist("Discover Weekly", "DW <date_here>", "🤖 generated backup playlist for Discover Weekly", 4, False)
+def backup_playlist(original_name, backup_name, backup_description, day_of_week, use_cover_image):
+    print(f"Backing up playlist {original_name} to {backup_name}")
+    # check day of week
+    if pd.Timestamp.today().dayofweek != day_of_week:
+        print(f"  Today is not day {day_of_week}, skipping backup")
+        return
+    # get the playlist ID of the original playlist, this is an array but should only have zero or one item
+    playlist_id = [playlist['id'] for playlist in playlists if playlist['name'] == original_name]
+    if not len(playlist_id):
+        return
 
-        # get the date of the past monday
-        monday = today - pd.Timedelta(days=today.dayofweek)
-        name = f'DW {str(monday)[:10]}'
-        description = '🤖 generated backup playlist for Discover Weekly'
-        weekly_playlist = len([playlist['id'] for playlist in playlists if playlist['name'] == name])
-        if weekly_playlist:
-            print('Found existing Discover Weekly backup playlist')
-            return
+    playlist_id = playlist_id[0]
+    # check if the backup playlist already exists, this is an array but should only have zero or one item
+    if len([playlist['id'] for playlist in playlists if playlist['name'] == backup_name]):
+        print(f"    Backup playlist {backup_name} already exists")
+        return
+    new_playlist = spotify.user_playlist_create(user=user_id, name=backup_name, public=False, collaborative=False,
+                                                description=backup_description)
 
-        playlist = spotify.user_playlist_create(user=user_id, name=name, public=False, collaborative=False,
-                                                description=description)
-        # get the tracks from the Discover weekly playlist
-        tracks = get_playlist_tracks(discover_weekly_playlist_id)
-        track_ids = [track['track']['id'] for track in tracks]
-        spotify.playlist_add_items(playlist_id=playlist['id'], items=track_ids)
-        print(name)
+    backup_id = new_playlist['id']
 
+    if use_cover_image:
+        image = spotify.playlist_cover_image(playlist_id)[0]['url']
+        spotify.playlist_upload_cover_image(backup_id, get_as_base64(image))
 
-def backup_release_radar():
-    print()
-    release_radar_playlist_id = [playlist['id'] for playlist in playlists if playlist['name'] == 'Release Radar']
-    if len(release_radar_playlist_id):
-        release_radar_playlist_id = release_radar_playlist_id[0]
-        # break if today isn't monday
-        today = pd.Timestamp.today()
-        if today.dayofweek != 0:
-            print('Today is not Monday')
-            return
+    print(f"    Created backup playlist {backup_name}")
+    # get the tracks from the original playlist
+    tracks = get_playlist_tracks(playlist_id)
+    # add the tracks to the backup playlist
+    spotify.playlist_add_items(backup_id, [track['track']['id'] for track in tracks])
 
-        # get the date of the past monday
-        # even though it refreshes on Friday, I think it's best to keep consistent with Discover Weekly backup dates
-        monday = today - pd.Timedelta(days=today.dayofweek)
-        name = f'RR {str(monday)[:10]}'
-        description = '🤖 generated backup playlist for Release Radar'
-        weekly_playlist = len([playlist['id'] for playlist in playlists if playlist['name'] == name])
-        if weekly_playlist:
-            print('Found existing Release Radar backup playlist')
-            return
-
-        playlist = spotify.user_playlist_create(user=user_id, name=name, public=False, collaborative=False,
-                                                description=description)
-        # get the tracks from the Release Radar playlist
-        tracks = get_playlist_tracks(release_radar_playlist_id)
-        track_ids = [track['track']['id'] for track in tracks]
-        spotify.playlist_add_items(playlist_id=playlist['id'], items=track_ids)
-        print(name)
+    print(f"    Added {len(tracks)} tracks to backup playlist {backup_name}")
 
 
 def main():
-    print("Logged in as " + spotify.me()['display_name'])
     # delete_playlists()
     # playlists = get_all_playlists()
     # playlist_names = [playlist['name'] for playlist in playlists]
     # playlist_descriptions = [playlist['description'] for playlist in playlists]
     # return
 
-    backup_discover_weekly()
-    backup_release_radar()
+    today = pd.Timestamp.today()
+    monday = today - pd.Timedelta(days=today.dayofweek)
+    dw_name = f'DW {str(monday)[:10]}'
+    dw_description = '🤖 generated backup playlist for Discover Weekly'
+    backup_playlist("Discover Weekly", dw_name, dw_description, 2, False)
 
-    # return
+    rr_name = f'RR {str(monday)[:10]}'
+    rr_description = '🤖 generated backup playlist for Release Radar'
+    backup_playlist("Release Radar", rr_name, rr_description, 2, True)
 
-    tracks = get_all_saved_tracks()
-    df_grouped = tracks.groupby('year_month')
+    # only do a full query if it's in the first 9 minutes of the hour
+    # if it runs every 5 minutes, this will only run once per hour
+    full_query = False
+    if today.minute < 9:
+        full_query = True
+
+    tracks_df = get_saved_tracks(full_query)
+    if ONLY_PROCESS_CURRENT_MONTH:
+        tracks_df = tracks_df[tracks_df['added_at'] >= datetime.datetime.today().replace(day=1)]
+    print(f"Found {len(tracks_df)} tracks")
+
+    df_grouped = tracks_df.groupby('year_month')
 
     # name is YYYY-MM
     total_added = 0
@@ -315,7 +320,7 @@ def main():
         group_len = group.shape[0]
         if group_len > 1:
             # make a new playlist if one with name doesn't exist
-            playlist_id = get_playlist_id(year_month=name)
+            playlist_id = get_playlist_id_by_key(year_month=name)
 
             # get the track ids in the playlist
             playlist_tracks = get_playlist_tracks(playlist_id)
