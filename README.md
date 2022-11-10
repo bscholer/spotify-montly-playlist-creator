@@ -1,8 +1,5 @@
-# Spotify Monthly Playlist Generator 🤖
+# Spotify Tools 🤖
 
-Generate monthly Spotify playlists with creative names, based on what songs you like during a given month.
+A collection of tools for automating Spotify playlist tasks
 
-Runs in Docker
-
-1. Clone repo
-1. Run `make`
+## Period Playlists
