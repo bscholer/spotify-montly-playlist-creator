@@ -1,6 +1,6 @@
 # ⚙ Config File ⚙
 
-For example, see `example/config.json`.
+For example, see [`example/config.json`](./config.json).
 
 ## Fields
 
