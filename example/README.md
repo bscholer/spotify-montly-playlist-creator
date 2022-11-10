@@ -123,9 +123,9 @@ Using word list: `["anxious", "accidental", "absent", "delicate", "fancy", "mach
 
 | Alliteration             | 'Current' Date | Resolves to | Result      |
 |--------------------------|----------------|-------------|-------------|
-| `&#124;{now>MMMM}&#124;` | 2022-04-20     | April       | **Anxious** |
-| `&#124;{now>DDDD}&#124;` | 2022-04-18     | Monday      | **Macho**   |
-| `&#124;{now>DDDD}&#124;` | 2022-02-01     | February    | **Fancy**   |
+| `\|{now>MMMM}\|` | 2022-04-20     | April       | **Anxious** |
+| `\|{now>DDDD}\|` | 2022-04-18     | Monday      | **Macho**   |
+| `\|{first day of this month>DDDD}\|` | 2022-02-01     | February    | **Fancy**   |
 
 
 ### Config File Versions
