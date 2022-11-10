@@ -1,4 +1,5 @@
 {
+  "version": "1.0.0",
   "period_playlist": [
     {
       "enabled": true,
@@ -22,8 +23,8 @@
       "backup_name": "DW {last monday>YYYY-MM-DD}",
       "backup_description": "🤖 generated backup playlist for Discover Weekly {date_key}",
       "date_key": "🔎{last monday>YYYY-MM-DD}",
-      "backup_public": false,
-      "backup_collaborative": false,
+      "public": false,
+      "collaborative": false,
       "use_cover_art_from_original": false,
       "cron_statement": "0 0 * * WED"
     },
@@ -34,8 +35,8 @@
       "backup_name": "RR {last monday>YYYY-MM-DD}",
       "backup_description": "🤖 generated backup playlist for Release Radar {date_key}",
       "date_key": "🆕{last monday>YYYY-MM-DD}",
-      "backup_public": false,
-      "backup_collaborative": false,
+      "public": false,
+      "collaborative": false,
       "use_cover_art_from_original": true,
       "cron_statement": "0 0 * * WED"
     },
@@ -46,8 +47,8 @@
       "backup_name": "DM5 {today>YYYY-MM-DD}",
       "backup_description": "🤖 generated backup playlist for Daily Mix 5 {date_key}",
       "date_key": "5️⃣{today>YYYY-MM-DD}",
-      "backup_public": false,
-      "backup_collaborative": false,
+      "public": false,
+      "collaborative": false,
       "use_cover_art_from_original": true,
       "cron_statement": "0 0 * * *"
     }
