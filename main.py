@@ -161,7 +161,6 @@ def get_saved_tracks(full_query=False):
     df['added_at'] = df['added_at'].apply(lambda x: x.replace(tzinfo=None))
     df['year_month'] = df['added_at'].dt.to_period('M')
     df['year_month'] = df['year_month'].astype(str)
-    print(df)
     return df
 
 
