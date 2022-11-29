@@ -24,20 +24,9 @@ For example, see [`example/config.json`](./config.json).
       example: "`{now>YY}` `|{now>MMMM}|` `{now>MMMM}`" yields "22 Anxious April"
     * `playlist_description`: The description of the playlist to create
 
-      `string`, which **must** have `$date_key`, and, if `playlist_name` has an [`|alliteration|`](#alliterations), **must** have `$alliteration_key`
+      `string`, which can have [`{date injections}`](#date-injections) and an [`|alliteration|`](#alliterations)
 
-      example: "🤖 generated `$alliteration_key` playlist for `$date_key`" yields "🤖 generated ✨Anxious✨ playlist for 📆2022-04📆"
-    * `date_key`: Used to match playlists so that duplicates aren't created
-
-      `string` with a prefix, and a [`{date injection}`](#date-injections), appropriate for the `period`.
-
-      example: `📆{now>YYYY-MM}📆`
-    * `alliteration_key_wrapper`: What to wrap the alliteration word with in the description. Used to screen out already-used
-      alliterations from the word list.
-
-      `string`
-
-      example: `✨`
+      example: "`{now>YY}` `|{now>MMMM}|` `{now>MMMM}`" yields "22 Anxious April"
     * `public`: Is the playlist public?
 
       `true` or `false`
