@@ -128,17 +128,17 @@ word_list = ['macabre', 'unequaled', 'brawny', 'wicked', 'obscene', 'stupendous'
 word_list = [word.lower() for word in word_list]
 
 REQUEST_SIZE = 50
-ONLY_PROCESS_CURRENT_MONTH = True
+MANUAL_CREATE_PLAYLIST = os.getenv('MANUAL_CREATE_PLAYLIST', False).lower() == 'true'
 scope = "user-library-read,playlist-modify-public,playlist-modify-private,playlist-read-private,playlist-read-collaborative,ugc-image-upload"
 
 try:
     spotify = spotipy.Spotify(
-        auth_manager=SpotifyOAuth(scope=scope, cache_path=r'/data/token.txt', client_id=os.getenv('SPOTIFY_CLIENT_ID'),
+        auth_manager=SpotifyOAuth(scope=scope, cache_path=rf'/data/{os.getenv("USER")}_token.txt', client_id=os.getenv('SPOTIFY_CLIENT_ID'),
                                   client_secret=os.getenv('SPOTIFY_CLIENT_SECRET'),
                                   redirect_uri=os.getenv('SPOTIFY_REDIRECT_URI')))
 except:
     spotify = spotipy.Spotify(
-        auth_manager=SpotifyOAuth(scope=scope, cache_path=r'data/token.txt', client_id=os.getenv('SPOTIFY_CLIENT_ID'),
+        auth_manager=SpotifyOAuth(scope=scope, cache_path=rf'data/{os.getenv("USER")}_token.txt', client_id=os.getenv('SPOTIFY_CLIENT_ID'),
                                   client_secret=os.getenv('SPOTIFY_CLIENT_SECRET'),
                                   redirect_uri=os.getenv('SPOTIFY_REDIRECT_URI')))
 
@@ -212,7 +212,7 @@ def delete_playlists():
     for playlist in playlists:
         if re.match(r'.+📆\d{4}-\d{2}', playlist['description']):
             print(f"Deleting playlist {playlist['name']}")
-            spotify.current_user_unfollow_playlist(playlist_id=playlist['id'])
+            # spotify.current_user_unfollow_playlist(playlist_id=playlist['id'])
 
 
 def make_creative_name(month, year):
@@ -238,11 +238,14 @@ def get_playlist_id_by_key(year_month=''):
             # print(f"Found existing playlist {playlist['name']}")
             return playlist['id']
 
-    name = make_creative_name(month, year_month)
-    playlist = spotify.user_playlist_create(user=user_id, name=name, public=True, collaborative=False,
-                                            description=description)
-    print(f'Created playlist {name}')
-    return playlist['id']
+    if not MANUAL_CREATE_PLAYLIST:
+        name = make_creative_name(month, year_month)
+        playlist = spotify.user_playlist_create(user=user_id, name=name, public=True, collaborative=False,
+                                                description=description)
+        print(f'Created playlist {name}')
+        return playlist['id']
+    else:
+        return None
     # else:
     #     print(f"Playlist for {year_month} already exists")
     #     return [playlist['id'] for playlist in playlists if playlist['description'] == description][0]
@@ -308,7 +311,7 @@ def main():
         full_query = True
 
     tracks_df = get_saved_tracks(full_query)
-    if ONLY_PROCESS_CURRENT_MONTH:
+    if MANUAL_CREATE_PLAYLIST:
         tracks_df = tracks_df[tracks_df['added_at'] >= datetime.datetime.today().replace(day=1)]
     print(f"Found {len(tracks_df)} tracks")
 
@@ -321,6 +324,8 @@ def main():
         if group_len > 1:
             # make a new playlist if one with name doesn't exist
             playlist_id = get_playlist_id_by_key(year_month=name)
+            if playlist_id is None:
+                continue
 
             # get the track ids in the playlist
             playlist_tracks = get_playlist_tracks(playlist_id)
